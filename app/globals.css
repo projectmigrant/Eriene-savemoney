@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* 古早味記帳本配色：牛皮紙、墨水藍、印章紅 */
+:root {
+  color-scheme: light;
+  --kraft: #e6d6b4;
+  --background: #f6eedb;
+  --foreground: #2d3047;
+  --surface: #fffaef;
+  --muted: #8b7d65;
+  --line: #e4d6b6;
+  --accent: #c8443a;
+  --accent-foreground: #fffaef;
+  --accent-soft: #f5dcd2;
+  --mustard: #e9b949;
+}
+
+@theme inline {
+  --color-kraft: var(--kraft);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-mustard: var(--mustard);
+  --font-sans: var(--font-wenkai), "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+body {
+  background: var(--kraft);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 筆記本內頁：橫線 + 左側紅色邊線 */
+@utility notebook {
+  background-color: var(--background);
+  background-image:
+    linear-gradient(to right, transparent 18px, rgb(200 68 58 / 0.35) 18px, rgb(200 68 58 / 0.35) 19.5px, transparent 19.5px),
+    repeating-linear-gradient(to bottom, transparent 0 31px, var(--line) 31px 32px);
+  box-shadow: 0 0 40px rgb(80 60 20 / 0.15);
+}
+
+/* 手繪感卡片：墨水描邊 + 錯位硬陰影 */
+@utility card-retro {
+  background-color: var(--surface);
+  border: 1.5px solid var(--foreground);
+  border-radius: 1rem;
+  box-shadow: 3px 3px 0 var(--foreground);
+}
+
+/* 紙膠帶 */
+@utility tape {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgb(233 185 73 / 0.75) 0 6px,
+    rgb(233 185 73 / 0.55) 6px 12px
+  );
+  border-left: 2px dashed rgb(255 250 239 / 0.6);
+  border-right: 2px dashed rgb(255 250 239 / 0.6);
+}
+
+/* 橫向滑動列隱藏捲軸 */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* landing page 的錢幣輕輕上下飄 */
+@keyframes coin-float {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-10px) rotate(6deg); }
+}
+@utility coin {
+  animation: coin-float 2.4s ease-in-out infinite;
+}
