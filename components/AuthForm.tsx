@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export type AuthMode = "login" | "register";
 
@@ -21,7 +20,6 @@ const FIELDS: Record<AuthMode, { name: string; label: string; type: string; auto
 
 // 登入 / 註冊共用表單（放在 landing page 的最下方）
 export default function AuthForm({ mode }: { mode: AuthMode }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const isLogin = mode === "login";
@@ -38,9 +36,8 @@ export default function AuthForm({ mode }: { mode: AuthMode }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      // 跳回首頁並重新讀取 cookie
-      router.replace("/");
-      router.refresh();
+      // 整頁重新載入首頁，清掉前一個帳號留下的畫面狀態
+      window.location.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "發生錯誤");
       setLoading(false);

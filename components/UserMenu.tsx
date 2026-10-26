@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { SessionUser } from "@/lib/auth";
 
 // 右上角：直接看得到的登出按鈕 + 頭像（點開顯示帳號資訊）
 export default function UserMenu({ user }: { user: SessionUser }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function logout() {
     setLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
-    router.refresh();
+    // 換帳號時要整頁重新載入：Next.js 會保留離開前的頁面狀態，
+    // 用 router 導頁的話，下次登入會看到舊畫面（例如卡在「登出中…」）
+    window.location.replace("/login");
   }
 
   return (

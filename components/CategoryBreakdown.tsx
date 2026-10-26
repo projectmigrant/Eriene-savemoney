@@ -3,14 +3,21 @@ import { formatMoney } from "@/lib/date";
 import CategoryBadge from "@/components/CategoryBadge";
 
 // 分類佔比：比例條 + 各分類長條，月統計和年統計共用
-export default function CategoryBreakdown({ rows, total }: { rows: CategoryRow[]; total: number }) {
+type Props = {
+  rows: CategoryRow[];
+  total: number;
+  title?: string;
+  emptyText?: string;
+};
+
+export default function CategoryBreakdown({ rows, total, title = "花費分佈", emptyText = "這段時間還沒有花費紀錄" }: Props) {
   const sorted = rows.filter((r) => r.amount > 0).sort((a, b) => b.amount - a.amount);
 
   if (sorted.length === 0) {
     return (
       <div className="card-retro px-6 py-10 text-center">
         <p className="text-3xl">(ㆆ_ㆆ)</p>
-        <p className="mt-3 text-muted">這段時間還沒有花費紀錄</p>
+        <p className="mt-3 text-muted">{emptyText}</p>
       </div>
     );
   }
@@ -18,7 +25,7 @@ export default function CategoryBreakdown({ rows, total }: { rows: CategoryRow[]
   return (
     <div className="space-y-4">
       <div className="card-retro p-4">
-        <p className="mb-3 text-sm font-bold">花費分佈</p>
+        <p className="mb-3 text-sm font-bold">{title}</p>
         <div className="flex h-5 overflow-hidden rounded-full border-[1.5px] border-foreground">
           {sorted.map((r) => (
             <div

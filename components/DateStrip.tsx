@@ -3,11 +3,13 @@
 import { useEffect, useRef } from "react";
 import { daysOfMonth, formatShort, weekdayOf } from "@/lib/date";
 
+export type DayTotal = { expense: number; income: number };
+
 type Props = {
   month: string;
   today: string;
   selected: string;
-  dailyTotals: Record<string, number>;
+  dailyTotals: Record<string, DayTotal>;
   onSelect: (date: string) => void;
 };
 
@@ -25,7 +27,7 @@ export default function DateStrip({ month, today, selected, dailyTotals, onSelec
       {daysOfMonth(month).map((date) => {
         const isSelected = date === selected;
         const isToday = date === today;
-        const spent = dailyTotals[date];
+        const total = dailyTotals[date];
         return (
           <button
             key={date}
@@ -43,8 +45,17 @@ export default function DateStrip({ month, today, selected, dailyTotals, onSelec
               {isToday ? "今天" : weekdayOf(date)}
             </span>
             <span className="text-xl leading-tight font-bold tabular-nums">{Number(date.slice(8))}</span>
-            <span className={`h-3.5 text-[10px] tabular-nums ${isSelected ? "" : "text-accent"}`}>
-              {spent ? formatShort(spent) : ""}
+            {/* 有支出顯示支出（紅），只有收入時顯示收入（綠） */}
+            <span
+              className={`h-3.5 text-[10px] tabular-nums ${
+                isSelected ? "" : total?.expense ? "text-accent" : "text-income"
+              }`}
+            >
+              {total?.expense
+                ? formatShort(total.expense)
+                : total?.income
+                  ? `+${formatShort(total.income)}`
+                  : ""}
             </span>
           </button>
         );

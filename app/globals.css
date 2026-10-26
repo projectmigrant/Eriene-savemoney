@@ -13,6 +13,7 @@
   --accent-foreground: #fffaef;
   --accent-soft: #f5dcd2;
   --mustard: #e9b949;
+  --income: #3f8f5a;
 }
 
 @theme inline {
@@ -26,6 +27,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
   --color-mustard: var(--mustard);
+  --color-income: var(--income);
   --font-sans: var(--font-wenkai), "PingFang TC", "Microsoft JhengHei", sans-serif;
 }
 

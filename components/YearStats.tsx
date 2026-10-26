@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CategoryRow } from "@/lib/categories";
-import { formatMoney, formatShort } from "@/lib/date";
+import type { CategoryRow, EntryType } from "@/lib/categories";
+import { formatMoney, formatShort, formatSigned } from "@/lib/date";
 import CategoryBreakdown from "@/components/CategoryBreakdown";
 import Stat from "@/components/Stat";
 
-type YearData = { year: string; months: number[]; categories: CategoryRow[] };
+type YearData = {
+  year: string;
+  expense: number[];
+  income: number[];
+  categories: (CategoryRow & { type: EntryType })[];
+};
 
 type Props = {
   initialYear: string;
@@ -15,7 +20,10 @@ type Props = {
   onPickMonth: (month: string) => void;
 };
 
-// 年統計：每月長條圖 + 全年分類佔比，點長條可跳到該月
+const EMPTY = Array<number>(12).fill(0);
+const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
+
+// 年統計：每月支出 / 收入長條圖 + 全年分類佔比，點長條可跳到該月
 export default function YearStats({ initialYear, currentMonth, onPickMonth }: Props) {
   const router = useRouter();
   const [year, setYear] = useState(initialYear);
@@ -30,20 +38,31 @@ export default function YearStats({ initialYear, currentMonth, onPickMonth }: Pr
         return res.json();
       })
       .then((json) => {
-        if (!ignore) setData({ year, months: json.months ?? Array(12).fill(0), categories: json.categories ?? [] });
+        if (!ignore) {
+          setData({
+            year,
+            expense: json.expense ?? EMPTY,
+            income: json.income ?? EMPTY,
+            categories: json.categories ?? [],
+          });
+        }
       })
       .catch(() => {
-        if (!ignore) setData({ year, months: Array(12).fill(0), categories: [] });
+        if (!ignore) setData({ year, expense: EMPTY, income: EMPTY, categories: [] });
       });
     return () => {
       ignore = true;
     };
   }, [year, router]);
 
-  const months = loading ? Array(12).fill(0) : data!.months;
-  const total = months.reduce((a, b) => a + b, 0);
-  const max = Math.max(...months, 1);
-  const activeMonths = months.filter((m) => m > 0).length;
+  const expense = loading ? EMPTY : data!.expense;
+  const income = loading ? EMPTY : data!.income;
+  const totalExpense = sum(expense);
+  const totalIncome = sum(income);
+  const max = Math.max(...expense, ...income, 1);
+  const activeMonths = expense.filter((m, i) => m > 0 || income[i] > 0).length;
+  const categories = loading ? [] : data!.categories;
+  const barHeight = (amount: number) => (amount > 0 ? `${Math.max((amount / max) * 100, 4)}%` : "0%");
 
   return (
     <div className="space-y-4">
@@ -58,9 +77,9 @@ export default function YearStats({ initialYear, currentMonth, onPickMonth }: Pr
             ‹
           </button>
           <div className="text-center">
-            <p className="font-bold">{year} 年</p>
+            <p className="font-bold">{year} 年支出</p>
             <p className="text-2xl font-bold tabular-nums text-accent">
-              {loading ? "…" : `$${formatMoney(total)}`}
+              {loading ? "…" : `$${formatMoney(totalExpense)}`}
             </p>
           </div>
           <button
@@ -72,11 +91,12 @@ export default function YearStats({ initialYear, currentMonth, onPickMonth }: Pr
           </button>
         </div>
 
-        {/* 每月長條圖 */}
+        {/* 每月長條圖：左支出、右收入 */}
         <div className="mt-4 flex h-44 items-end gap-1">
-          {months.map((amount, i) => {
+          {expense.map((spent, i) => {
             const m = `${year}-${String(i + 1).padStart(2, "0")}`;
             const isCurrent = m === currentMonth;
+            const earned = income[i];
             return (
               <button
                 key={m}
@@ -85,14 +105,22 @@ export default function YearStats({ initialYear, currentMonth, onPickMonth }: Pr
                 aria-label={`${i + 1} 月`}
               >
                 <span className="mb-1 h-3 text-[9px] leading-none tabular-nums text-muted">
-                  {amount > 0 ? formatShort(amount) : ""}
+                  {spent > 0 ? formatShort(spent) : ""}
                 </span>
-                <span
-                  className={`w-full rounded-t-md border-[1.5px] border-b-0 border-foreground transition-all ${
-                    isCurrent ? "bg-accent" : "bg-mustard"
-                  }`}
-                  style={{ height: amount > 0 ? `${Math.max((amount / max) * 100, 4)}%` : "0%" }}
-                />
+                <span className="flex h-full w-full items-end gap-px">
+                  <span
+                    className={`flex-1 rounded-t-sm border-[1.5px] border-b-0 border-foreground ${
+                      isCurrent ? "bg-accent" : "bg-mustard"
+                    } ${spent > 0 ? "" : "border-0"}`}
+                    style={{ height: barHeight(spent) }}
+                  />
+                  <span
+                    className={`flex-1 rounded-t-sm border-[1.5px] border-b-0 border-foreground bg-income ${
+                      earned > 0 ? "" : "border-0"
+                    }`}
+                    style={{ height: barHeight(earned) }}
+                  />
+                </span>
                 <span
                   className={`w-full border-t-[1.5px] border-foreground pt-1 text-[11px] whitespace-nowrap ${
                     isCurrent ? "font-bold text-accent" : "text-muted"
@@ -104,18 +132,41 @@ export default function YearStats({ initialYear, currentMonth, onPickMonth }: Pr
             );
           })}
         </div>
-        <p className="mt-2 text-center text-xs text-muted">（月）點長條可以看那個月的明細</p>
+        <div className="mt-2 flex items-center justify-center gap-3 text-xs text-muted">
+          <span className="flex items-center gap-1">
+            <span className="size-2.5 rounded-sm border border-foreground bg-mustard" />支出
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="size-2.5 rounded-sm border border-foreground bg-income" />收入
+          </span>
+          <span>· 點長條看該月明細</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <Stat label="全年收入" value={`+$${formatMoney(totalIncome)}`} tone="income" />
+        <Stat
+          label="全年結餘"
+          value={formatSigned(totalIncome - totalExpense)}
+          tone={totalIncome - totalExpense < 0 ? "expense" : "income"}
+        />
         <Stat label="有記帳的月份" value={`${activeMonths} 個月`} />
-        <Stat label="平均每月" value={`$${formatMoney(Math.round(total / Math.max(activeMonths, 1)))}`} />
+        <Stat label="平均每月花" value={`$${formatMoney(Math.round(totalExpense / Math.max(activeMonths, 1)))}`} />
       </div>
 
       {loading ? (
         <div className="card-retro h-48 animate-pulse" />
       ) : (
-        <CategoryBreakdown rows={data!.categories} total={total} />
+        <>
+          <CategoryBreakdown rows={categories.filter((c) => c.type === "expense")} total={totalExpense} />
+          {totalIncome > 0 && (
+            <CategoryBreakdown
+              rows={categories.filter((c) => c.type === "income")}
+              total={totalIncome}
+              title="收入來源"
+            />
+          )}
+        </>
       )}
     </div>
   );

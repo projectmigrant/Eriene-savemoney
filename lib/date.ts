@@ -46,3 +46,8 @@ export function formatShort(n: number) {
   if (n >= 10000) return `${(n / 10000).toFixed(1).replace(/\.0$/, "")}萬`;
   return formatMoney(Math.round(n));
 }
+
+// 帶正負號的金額，例如 +1,000 / −250
+export function formatSigned(n: number) {
+  return `${n < 0 ? "−" : "+"}${formatMoney(Math.abs(n))}`;
+}

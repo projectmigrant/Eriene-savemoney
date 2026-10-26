@@ -1,11 +1,12 @@
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, ENTRY_TYPES } from "@/lib/categories";
 
 const ExpenseSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true }, // 誰記的帳
     rawText: { type: String, required: true }, // 使用者輸入的原始文字
-    amount: { type: Number, required: true },
+    type: { type: String, enum: ENTRY_TYPES, default: "expense", required: true }, // 支出或收入
+    amount: { type: Number, required: true }, // 一律存正數，正負由 type 決定
     category: { type: String, enum: CATEGORIES, required: true },
     description: { type: String, required: true },
     date: { type: String, required: true }, // YYYY-MM-DD

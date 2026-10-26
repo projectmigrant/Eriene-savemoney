@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ExpenseItem } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth";
-import { formatMoney, formatMonth, monthOf, shiftMonth } from "@/lib/date";
-import DateStrip from "@/components/DateStrip";
+import { formatMoney, formatMonth, formatSigned, monthOf, shiftMonth } from "@/lib/date";
+import DateStrip, { type DayTotal } from "@/components/DateStrip";
 import DayList from "@/components/DayList";
 import StatsView from "@/components/StatsView";
 import Composer from "@/components/Composer";
@@ -50,10 +50,16 @@ export default function ExpenseApp({ today, user }: { today: string; user: Sessi
     return () => clearTimeout(t);
   }, [toast]);
 
-  const monthTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const sumOf = (type: "expense" | "income") =>
+    expenses.filter((e) => e.type === type).reduce((sum, e) => sum + e.amount, 0);
+  const monthExpense = sumOf("expense");
+  const monthIncome = sumOf("income");
   const dailyTotals = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const e of expenses) map[e.date] = (map[e.date] ?? 0) + e.amount;
+    const map: Record<string, DayTotal> = {};
+    for (const e of expenses) {
+      map[e.date] ??= { expense: 0, income: 0 };
+      map[e.date][e.type] += e.amount;
+    }
     return map;
   }, [expenses]);
 
@@ -118,8 +124,22 @@ export default function ExpenseApp({ today, user }: { today: string; user: Sessi
             <p className="text-xs tracking-[0.4em] text-muted">本月開銷</p>
             <p className="mt-1 inline-block border-b-4 border-double border-accent px-3 pb-0.5 text-4xl font-bold tabular-nums">
               <span className="mr-1 text-lg">$</span>
-              {loading ? "…" : formatMoney(monthTotal)}
+              {loading ? "…" : formatMoney(monthExpense)}
             </p>
+          </div>
+          <div className="mt-4 grid grid-cols-2 border-t-[1.5px] border-dashed border-line pt-3 text-center text-sm">
+            <div>
+              <p className="text-xs text-muted">本月收入</p>
+              <p className="font-bold tabular-nums text-income">{loading ? "…" : `+${formatMoney(monthIncome)}`}</p>
+            </div>
+            <div className="border-l-[1.5px] border-dashed border-line">
+              <p className="text-xs text-muted">結餘</p>
+              <p
+                className={`font-bold tabular-nums ${monthIncome - monthExpense < 0 ? "text-accent" : "text-income"}`}
+              >
+                {loading ? "…" : formatSigned(monthIncome - monthExpense)}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -160,7 +180,8 @@ export default function ExpenseApp({ today, user }: { today: string; user: Sessi
             today={today}
             loading={loading}
             expenses={expenses}
-            total={monthTotal}
+            totalExpense={monthExpense}
+            totalIncome={monthIncome}
             onPickMonth={goToMonth}
           />
         )}
